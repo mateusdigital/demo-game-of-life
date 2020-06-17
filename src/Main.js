@@ -8,10 +8,36 @@ const PROJECT_INSTRUCTIONS = "<br><br>";
 const PROJECT_LINK         = "<a href=\"http://stdmatt.com/demos/game_of_life.html\">More info</a>";
 
 
+const TIME_TO_UPDATE_MIN = 0.05;
+const TIME_TO_UPDATE_MAX = 1.0;
+const TIME_TO_UPDATE_INITIAL_RATIO = 0.5;
+
+const CELL_SIZE_MIN = 3;
+const CELL_SIZE_MAX = 20;
+const CELL_SIZE_INITIAL_RATIO = 0.5;
+
 //----------------------------------------------------------------------------//
 // Variables                                                                  //
 //----------------------------------------------------------------------------//
-let DrawGrid = true;
+let DrawGrid     = true;
+let TimeToUpdate = Math_Lerp(TIME_TO_UPDATE_MIN, TIME_TO_UPDATE_MAX, TIME_TO_UPDATE_INITIAL_RATIO);
+let AutoUpdate   = false;
+
+let CurrentTime    = 0;
+let NextUpdateTime = 0;
+
+let CellSize = Math_Lerp(CELL_SIZE_MIN, CELL_SIZE_MAX, CELL_SIZE_INITIAL_RATIO);
+let CurrState = null;
+let NextState = null;
+
+let FieldCols = 0;
+let FieldRows = 0;
+
+//------------------------------------------------------------------------------
+let mouse_is_down = false;
+let mouse_last_x  = -1;
+let mouse_last_y  = -1;
+let mouse_moved   = false;
 
 
 //----------------------------------------------------------------------------//
@@ -66,38 +92,68 @@ CreateControlsUI()
 {
     const parent = document.getElementById("canvas_div");
 
-    // Tick
-    const button = document.createElement("input");
-    button.type = "button";
-    button.value = "Tick";
-    button.onclick = ApplyRules;
-    parent.appendChild(button);
+    //
+    // Simuation Update.
+    DOM_CreateButton(
+        "Step",
+        ()=>{
+            ApplyRules();
+            checkbox.checkbox.checked = false;
+            AutoUpdate = false;
+        },
+        parent
+    );
 
-    // Draw Mode
-    const draw_model_cb = document.createElement("input");
-    draw_model_cb.type = "checkbox";
-    draw_model_cb.value = "???";
-    draw_model_cb.onclick = () => {
-        DrawGrid = !DrawGrid;
-    };
-    parent.appendChild(draw_model_cb);
+    DOM_CreateSlider(
+        "Time to Update",
+        TIME_TO_UPDATE_MIN,
+        TIME_TO_UPDATE_MAX,
+        TIME_TO_UPDATE_INITIAL_RATIO,
+        0.1,
+        null,
+        (v)=>{
+            TimeToUpdate = v;
+            console.log(TimeToUpdate);
+        },
+        parent
+    );
+
+    const checkbox =  DOM_CreateCheckbox(
+        "Auto Update",
+        false,
+        (v)=>{
+            AutoUpdate = v;
+        },
+        parent
+    );
+
+    //
+    // Cell Size
+    DOM_CreateSlider(
+        "Cell Size",
+        CELL_SIZE_MIN,
+        CELL_SIZE_MAX,
+        CELL_SIZE_INITIAL_RATIO,
+        1,
+        null,
+        (v)=>{
+            CreateGame(v);
+        },
+        parent
+    );
 }
 
 //----------------------------------------------------------------------------//
 // Game Implementation                                                        //
 //----------------------------------------------------------------------------//
-let CurrState = null;
-let NextState = null;
 
-let FieldCols = 0;
-let FieldRows = 0;
-
-let CellSize = 20;
 
 //------------------------------------------------------------------------------
 function
-CreateGame()
+CreateGame(cell_size)
 {
+    CellSize = cell_size;
+
     FieldRows = Math_Int(Canvas_Height / CellSize);
     FieldCols = Math_Int(Canvas_Width  / CellSize);
 
@@ -189,7 +245,7 @@ DrawCurrState()
         const cols = CurrState[0].length;
         for(let i = 0; i < rows; ++i) {
             for(let j = 0; j < cols; ++j) {
-                const is_alive = CellIsAlive(CurrState, i, j);
+                const is_alive = CurrState[i][j];
                 if(is_alive) {
                     Canvas_SetFillStyle("black");
                 } else {
@@ -203,8 +259,6 @@ DrawCurrState()
                     CellSize - 1
                 );
             }
-        }
-    }
         }
     }
 }
@@ -228,7 +282,7 @@ Setup()
 
     // Game.
     Canvas_Translate(-Canvas_Half_Width, -Canvas_Half_Height);
-    CreateGame();
+    CreateGame(CellSize);
 
     // Game Loop.
     Canvas_Start();
@@ -240,21 +294,72 @@ function
 Draw(dt)
 {
     DrawCurrState();
+    if(AutoUpdate && !mouse_is_down) {
+        if(Time_Total > NextUpdateTime) {
+            NextUpdateTime = (Time_Total + TimeToUpdate);
+            ApplyRules();
+        }
+    }
+}
+
+//----------------------------------------------------------------------------//
+// Input Handling                                                             //
+//----------------------------------------------------------------------------//
+
+//------------------------------------------------------------------------------
+function
+OnMouseDown()
+{
+    mouse_is_down = true;
+    mouse_moved   = false;
+}
+
+//------------------------------------------------------------------------------
+function
+OnMouseUp()
+{
+    mouse_is_down = false;
+    mouse_last_x  = -1;
+    mouse_last_y  = -1;
+    console.log("u[")
+}
+
+//------------------------------------------------------------------------------
+function
+OnMouseMove()
+{
+    if(!mouse_is_down) {
+        return;
+    }
+
+    mouse_moved = true;
+
+    const x = Math_Int(Mouse_X / CellSize);
+    const y = Math_Int(Mouse_Y / CellSize);
+
+    if(mouse_last_x == x && mouse_last_y == y) {
+        return;
+    }
+
+    mouse_last_x = x;
+    mouse_last_y = y;
+
+    CurrState[y][x] = !CurrState[y][x];
 }
 
 //------------------------------------------------------------------------------
 function
 OnMouseClick()
 {
-    const cell_w = (Canvas_Width  / CurrState[0].length);
-    const cell_h = (Canvas_Height / CurrState.length);
+    if(mouse_moved) {
+        return;
+    }
 
-    const x = Math_Int(Mouse_X / cell_w);
-    const y = Math_Int(Mouse_Y / cell_h);
-
-    console.log(x, y);
+    const x = Math_Int(Mouse_X / CellSize);
+    const y = Math_Int(Mouse_Y / CellSize);
     CurrState[y][x] = !CurrState[y][x];
 }
+
 
 //----------------------------------------------------------------------------//
 // Entry Point                                                                //
