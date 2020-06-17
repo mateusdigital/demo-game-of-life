@@ -11,6 +11,7 @@ const PROJECT_LINK         = "<a href=\"http://stdmatt.com/demos/game_of_life.ht
 //----------------------------------------------------------------------------//
 // Variables                                                                  //
 //----------------------------------------------------------------------------//
+let DrawGrid = true;
 
 
 //----------------------------------------------------------------------------//
@@ -65,12 +66,21 @@ CreateControlsUI()
 {
     const parent = document.getElementById("canvas_div");
 
+    // Tick
     const button = document.createElement("input");
     button.type = "button";
     button.value = "Tick";
     button.onclick = ApplyRules;
-
     parent.appendChild(button);
+
+    // Draw Mode
+    const draw_model_cb = document.createElement("input");
+    draw_model_cb.type = "checkbox";
+    draw_model_cb.value = "???";
+    draw_model_cb.onclick = () => {
+        DrawGrid = !DrawGrid;
+    };
+    parent.appendChild(draw_model_cb);
 }
 
 //----------------------------------------------------------------------------//
@@ -79,15 +89,20 @@ CreateControlsUI()
 let CurrState = null;
 let NextState = null;
 
-let FieldWidth  = 20;
-let FieldHeight = 20;
+let FieldCols = 0;
+let FieldRows = 0;
+
+let CellSize = 20;
 
 //------------------------------------------------------------------------------
 function
 CreateGame()
 {
-    CurrState = Array_Create2D(FieldHeight, FieldWidth, false);
-    NextState = Array_Create2D(FieldHeight, FieldWidth, false);
+    FieldRows = Math_Int(Canvas_Height / CellSize);
+    FieldCols = Math_Int(Canvas_Width  / CellSize);
+
+    CurrState = Array_Create2D(FieldRows, FieldCols, null);
+    NextState = Array_Create2D(FieldRows, FieldCols, null);
 }
 
 //------------------------------------------------------------------------------
@@ -126,7 +141,7 @@ ApplyRules()
     // 2 - Any live cell with two or three live neighbours lives on to the next generation.
     // 3 - Any live cell with more than three live neighbours dies, as if by overpopulation.
     // 4 - Any dead cell with exactly three live neighbours becomes a live cell, as if by reproduction.
-    NextState = Array_Create2D(FieldHeight, FieldWidth, false);
+    NextState = Array_Create2D(FieldRows, FieldCols, null);
 
     const rows = CurrState.length;
     const cols = CurrState[0].length;
@@ -164,26 +179,32 @@ ApplyRules()
 function
 DrawCurrState()
 {
-    const rows = CurrState.length;
-    const cols = CurrState[0].length;
-    const cell_w = (Canvas_Width  / cols);
-    const cell_h = (Canvas_Height / rows);
+    Canvas_SetFillStyle("black");
+    Canvas_FillRect(0, 0, Canvas_Width, Canvas_Height);
 
-    for(let i = 0; i < rows; ++i) {
-        for(let j = 0; j < cols; ++j) {
-            const filled = CurrState[i][j];
-            if(filled) {
-                Canvas_SetFillStyle("black");
-            } else {
-                Canvas_SetFillStyle("red");
+    //
+    // Draw the Classic Visualization.
+    if(DrawGrid) {
+        const rows = CurrState.length;
+        const cols = CurrState[0].length;
+        for(let i = 0; i < rows; ++i) {
+            for(let j = 0; j < cols; ++j) {
+                const is_alive = CellIsAlive(CurrState, i, j);
+                if(is_alive) {
+                    Canvas_SetFillStyle("black");
+                } else {
+                    Canvas_SetFillStyle("red");
+                }
+
+                Canvas_FillRect(
+                    j * CellSize,
+                    i * CellSize,
+                    CellSize - 1,
+                    CellSize - 1
+                );
             }
-
-            Canvas_FillRect(
-                j * cell_w,
-                i * cell_h,
-                cell_w -1,
-                cell_h -1
-            );
+        }
+    }
         }
     }
 }
