@@ -4,34 +4,30 @@
 const PROJECT_TITLE        = "<b>Title:</b>Game of Life<br>";
 const PROJECT_DATE         = "<b>Date:</b>Jul 17, 2020<br>";
 const PROJECT_VERSION      = "<b>Version:</b> " + GetVersion() + "<br>";
-const PROJECT_INSTRUCTIONS = "<br><br>";
+const PROJECT_INSTRUCTIONS = "<br>Click and drag to add more cells<br>";
 const PROJECT_LINK         = "<a href=\"http://stdmatt.com/demos/game_of_life.html\">More info</a>";
 
+const TIME_TO_UPDATE    = 0.10;
+const CELL_SIZE_DEFAULT = 5;
+const CLEAR_COLOR       = "black";
 
-const TIME_TO_UPDATE_MIN = 0.05;
-const TIME_TO_UPDATE_MAX = 1.0;
-const TIME_TO_UPDATE_INITIAL_RATIO = 0.5;
+const COLOR_CHANGE_MULTIPLIER = 0.1;
 
-const CELL_SIZE_MIN = 3;
-const CELL_SIZE_MAX = 20;
-const CELL_SIZE_INITIAL_RATIO = 0.5;
 
 //----------------------------------------------------------------------------//
 // Variables                                                                  //
 //----------------------------------------------------------------------------//
-let DrawGrid     = true;
-let TimeToUpdate = Math_Lerp(TIME_TO_UPDATE_MIN, TIME_TO_UPDATE_MAX, TIME_TO_UPDATE_INITIAL_RATIO);
-let AutoUpdate   = false;
-
 let CurrentTime    = 0;
 let NextUpdateTime = 0;
 
-let CellSize = Math_Lerp(CELL_SIZE_MIN, CELL_SIZE_MAX, CELL_SIZE_INITIAL_RATIO);
+let CellSize = CELL_SIZE_DEFAULT;
 let CurrState = null;
 let NextState = null;
 
 let FieldCols = 0;
 let FieldRows = 0;
+
+let AllowWrap = true;
 
 //------------------------------------------------------------------------------
 let mouse_is_down = false;
@@ -86,68 +82,10 @@ AddInfo()
     parent.appendChild(info);
 }
 
-//------------------------------------------------------------------------------
-function
-CreateControlsUI()
-{
-    const parent = document.getElementById("canvas_div");
-
-    //
-    // Simuation Update.
-    DOM_CreateButton(
-        "Step",
-        ()=>{
-            ApplyRules();
-            checkbox.checkbox.checked = false;
-            AutoUpdate = false;
-        },
-        parent
-    );
-
-    DOM_CreateSlider(
-        "Time to Update",
-        TIME_TO_UPDATE_MIN,
-        TIME_TO_UPDATE_MAX,
-        TIME_TO_UPDATE_INITIAL_RATIO,
-        0.1,
-        null,
-        (v)=>{
-            TimeToUpdate = v;
-            console.log(TimeToUpdate);
-        },
-        parent
-    );
-
-    const checkbox =  DOM_CreateCheckbox(
-        "Auto Update",
-        false,
-        (v)=>{
-            AutoUpdate = v;
-        },
-        parent
-    );
-
-    //
-    // Cell Size
-    DOM_CreateSlider(
-        "Cell Size",
-        CELL_SIZE_MIN,
-        CELL_SIZE_MAX,
-        CELL_SIZE_INITIAL_RATIO,
-        1,
-        null,
-        (v)=>{
-            CreateGame(v);
-        },
-        parent
-    );
-}
 
 //----------------------------------------------------------------------------//
 // Game Implementation                                                        //
 //----------------------------------------------------------------------------//
-
-
 //------------------------------------------------------------------------------
 function
 CreateGame(cell_size)
@@ -157,8 +95,17 @@ CreateGame(cell_size)
     FieldRows = Math_Int(Canvas_Height / CellSize);
     FieldCols = Math_Int(Canvas_Width  / CellSize);
 
+    console.log(FieldRows, FieldCols);
+
     CurrState = Array_Create2D(FieldRows, FieldCols, null);
     NextState = Array_Create2D(FieldRows, FieldCols, null);
+
+    for(let i = 0; i < FieldCols * FieldRows / 2; ++i) {
+        const y = Random_Int(0, FieldRows);
+        const x = Random_Int(0, FieldCols);
+
+        CurrState[y][x] = true;
+    }
 }
 
 //------------------------------------------------------------------------------
@@ -167,20 +114,24 @@ CountNeighbours(state, y, x)
 {
     let count = 0;
     for(let i = y-1; i <= y+1; ++i) {
-        if(i < 0 || i >= state.length) {
+        const i_out_of_bounds = (i < 0 || i >= state.length);
+        if(i_out_of_bounds && !AllowWrap) {
             continue;
         }
 
+        const ii = Math_Wrap(0, state.length-1, i);
         for(let j = x-1; j <= x+1; ++j) {
+            const j_out_of_bounds = (j < 0 || j >= state[ii].length);
+            if(j_out_of_bounds && !AllowWrap) {
+                continue;
+            }
+
             if(i == y && j == x) {
                 continue;
             }
 
-            if(j < 0 || j >= state[i].length) {
-                continue;
-            }
-
-            if(state[i][j]) {
+            const jj = Math_Wrap(0, state[ii].length-1, j);
+            if(state[ii][jj]) {
                 ++count;
             }
         }
@@ -235,30 +186,29 @@ ApplyRules()
 function
 DrawCurrState()
 {
-    Canvas_SetFillStyle("black");
+    Canvas_SetFillStyle(CLEAR_COLOR);
     Canvas_FillRect(0, 0, Canvas_Width, Canvas_Height);
 
     //
-    // Draw the Classic Visualization.
-    if(DrawGrid) {
-        const rows = CurrState.length;
-        const cols = CurrState[0].length;
-        for(let i = 0; i < rows; ++i) {
-            for(let j = 0; j < cols; ++j) {
-                const is_alive = CurrState[i][j];
-                if(is_alive) {
-                    Canvas_SetFillStyle("black");
-                } else {
-                    Canvas_SetFillStyle("red");
-                }
+    const v = Math_Abs(Math_Sin(Time_Total * COLOR_CHANGE_MULTIPLIER));
+    Canvas_SetFillStyle(chroma.hsl(360 * v, 0.5, 0.5));
 
-                Canvas_FillRect(
-                    j * CellSize,
-                    i * CellSize,
-                    CellSize - 1,
-                    CellSize - 1
-                );
+    const rows = CurrState.length;
+    const cols = CurrState[0].length;
+
+    for(let i = 0; i < rows; ++i) {
+        for(let j = 0; j < cols; ++j) {
+            const is_alive = CurrState[i][j];
+            if(!is_alive) {
+                continue;
             }
+
+            Canvas_FillRect(
+                j * CellSize,
+                i * CellSize,
+                CellSize - 1,
+                CellSize - 1
+            );
         }
     }
 }
@@ -273,11 +223,10 @@ Setup()
 {
     //
     ConfigureCanvas ();
-    CreateControlsUI();
     AddInfo         ();
 
     //
-    Random_Seed(1);
+    Random_Seed(null);
     Input_InstallBasicMouseHandler(Canvas);
 
     // Game.
@@ -294,18 +243,20 @@ function
 Draw(dt)
 {
     DrawCurrState();
-    if(AutoUpdate && !mouse_is_down) {
-        if(Time_Total > NextUpdateTime) {
-            NextUpdateTime = (Time_Total + TimeToUpdate);
-            ApplyRules();
-        }
+    if(mouse_is_down) {
+        return;
+    }
+
+    if(Time_Total > NextUpdateTime) {
+        NextUpdateTime = (Time_Total + TIME_TO_UPDATE);
+        ApplyRules();
     }
 }
+
 
 //----------------------------------------------------------------------------//
 // Input Handling                                                             //
 //----------------------------------------------------------------------------//
-
 //------------------------------------------------------------------------------
 function
 OnMouseDown()
