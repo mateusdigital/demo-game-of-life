@@ -28,7 +28,7 @@ __SOURCES = [
     "/modules/demolib/source/demolib.js",
 ];
 
-const TIME_TO_UPDATE    = 0.10;
+const TIME_TO_UPDATE    = 0.15;
 const CLEAR_COLOR       = "black";
 
 //----------------------------------------------------------------------------//
