@@ -282,7 +282,7 @@ function setup_common(canvas)
         on_mouse_left_click: OnMouseClick
     });
 
-    CreateGame(random_int(5, 20));
+    CreateGame(random_int(20, 40));
 
     start_draw_loop(draw);
 }
