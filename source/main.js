@@ -10,7 +10,7 @@
 //  Date      : Jun 17, 2020                                                  //
 //  License   : GPLv3                                                         //
 //  Author    : stdmatt <stdmatt@pixelwizards.io>                             //
-//  Copyright : stdmatt - 2020                                                //
+//  Copyright : stdmatt - 2020, 2023                                          //
 //                                                                            //
 //  Description :                                                             //
 //                                                                            //
@@ -29,7 +29,7 @@ __SOURCES = [
 ];
 
 const TIME_TO_UPDATE    = 0.10;
-const CELL_SIZE_DEFAULT = 5;
+const CELL_SIZE_DEFAULT = 10;
 const CLEAR_COLOR       = "black";
 
 const COLOR_CHANGE_MULTIPLIER = 0.1;
@@ -55,7 +55,6 @@ let mouse_last_x  = -1;
 let mouse_last_y  = -1;
 let mouse_moved   = false;
 
-let background_color = 0xFF00FF;
 
 //----------------------------------------------------------------------------//
 // Game Implementation                                                        //
@@ -205,7 +204,6 @@ OnMouseUp()
     mouse_is_down = false;
     mouse_last_x  = -1;
     mouse_last_y  = -1;
-    console.log("u[")
 }
 
 //------------------------------------------------------------------------------
@@ -218,8 +216,8 @@ OnMouseMove()
 
     mouse_moved = true;
 
-    const x = to_int(Mouse_X / CellSize);
-    const y = to_int(Mouse_Y / CellSize);
+    const x = to_int(get_mouse_x() / CellSize);
+    const y = to_int(get_mouse_y() / CellSize);
 
     if(mouse_last_x == x && mouse_last_y == y) {
         return;
@@ -239,8 +237,8 @@ OnMouseClick()
         return;
     }
 
-    const x = to_int(Mouse_X / CellSize);
-    const y = to_int(Mouse_Y / CellSize);
+    const x = to_int(get_mouse_x() / CellSize);
+    const y = to_int(get_mouse_y() / CellSize);
     CurrState[y][x] = !CurrState[y][x];
 }
 
@@ -279,7 +277,12 @@ function setup_common(canvas)
 {
     set_random_seed();
     set_main_canvas(canvas);
-    install_input_handlers(canvas);
+    install_input_handlers(canvas, {
+        on_mouse_move: OnMouseMove,
+        on_mouse_down: OnMouseDown,
+        on_mouse_up:   OnMouseUp,
+        on_mouse_left_click: OnMouseClick
+    });
 
     CreateGame(CellSize);
 
@@ -305,7 +308,6 @@ function demo_main(user_canvas)
 //------------------------------------------------------------------------------
 function draw(dt)
 {
-    clear_canvas(background_color);
     begin_draw();
         DrawCurrState();
         if(mouse_is_down) {
