@@ -29,10 +29,7 @@ __SOURCES = [
 ];
 
 const TIME_TO_UPDATE    = 0.10;
-const CELL_SIZE_DEFAULT = 10;
 const CLEAR_COLOR       = "black";
-
-const COLOR_CHANGE_MULTIPLIER = 0.1;
 
 //----------------------------------------------------------------------------//
 // Variables                                                                  //
@@ -40,7 +37,7 @@ const COLOR_CHANGE_MULTIPLIER = 0.1;
 let CurrentTime    = 0;
 let NextUpdateTime = 0;
 
-let CellSize  = CELL_SIZE_DEFAULT;
+let CellSize  = null;
 let CurrState = null;
 let NextState = null;
 
@@ -162,7 +159,7 @@ DrawCurrState()
     clear_canvas(CLEAR_COLOR)
 
     //
-    const v = Math.abs(Math.sin(get_total_time() * COLOR_CHANGE_MULTIPLIER));
+    const v = Math.abs(Math.sin(Date.now() / 10000));
     set_canvas_fill(chroma.hsl(360 * v, 0.5, 0.5));
 
     const rows = CurrState.length;
@@ -239,6 +236,7 @@ OnMouseClick()
 
     const x = to_int(get_mouse_x() / CellSize);
     const y = to_int(get_mouse_y() / CellSize);
+
     CurrState[y][x] = !CurrState[y][x];
 }
 
@@ -284,7 +282,7 @@ function setup_common(canvas)
         on_mouse_left_click: OnMouseClick
     });
 
-    CreateGame(CellSize);
+    CreateGame(random_int(5, 20));
 
     start_draw_loop(draw);
 }
