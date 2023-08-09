@@ -11,7 +11,7 @@
 ##                      O      *        '       .                             ##
 ##                                                                            ##
 ##  File      : build-static.sh                                               ##
-##  Project   : lissajous                                                     ##
+##  Project   : game_of_life                                                  ##
 ##  Date      : 2023-08-09                                                    ##
 ##  License   : GPLv3                                                         ##
 ##  Author    : mateus.digital <hello@mateus.digital>                         ##
