@@ -1,0 +1,30 @@
+{
+  "name": "game-of-life",
+  "description": "Game of Life is an implementation of the classic Conway's Game of Life.",
+  "version": "2.0.0",
+  "build": 6,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mateusdigital/demo-flowfield.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mateusdigital/demo-flowfield/issues"
+  },
+  "homepage": "https://mateus.digital/projects/flowfield",
+  "keywords": [
+    "game-of-life",
+    "javascript",
+    "canvas",
+    "retro",
+    "demo",
+    "demoscene",
+    "creative-coding",
+    "mateus.digital"
+  ],
+  "author": {
+    "name": "Mateus Mesquita",
+    "email": "hello@mateus.digital",
+    "url": "https://mateus.digital"
+  },
+  "license": "GPL-3.0-or-later"
+}
